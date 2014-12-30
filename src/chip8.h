@@ -18,6 +18,7 @@ typedef struct tagChip8
 
 void chip8_init(Chip8 *chip);
 void chip8_dump(Chip8 *chip);
+int chip8_load(Chip8 *chip, const char *rom);
 
 #endif
 

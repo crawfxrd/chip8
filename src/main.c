@@ -14,6 +14,15 @@ int main(int argc, char *argv[])
     chip8_init(&chip);
     chip8_dump(&chip);
 
+    if (chip8_load(&chip, argv[1]) == 0)
+    {
+        puts("ROM read into memory.");
+    }
+    else
+    {
+        puts("Failed to load ROM.");
+    }
+
     return 0;
 }
 

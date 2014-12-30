@@ -60,3 +60,35 @@ void chip8_dump(Chip8 *chip)
     printf("\n");
 }
 
+int chip8_load(Chip8 *chip, const char *rom)
+{
+    FILE *fp;
+    long size;
+
+    fp = fopen(rom, "rb");
+    if (fp == NULL)
+    {
+        printf("Unable to open file %s\n", rom);
+        return 1;
+    }
+
+    fseek(fp, 0L, SEEK_END);
+    size = ftell(fp);
+    rewind(fp);
+
+    if (size > (0x1000 - 0x200))
+    {
+        puts("ROM too big");
+        fclose(fp);
+        return 2;
+    }
+
+    for (int i = 0; i < size; i++)
+    {
+        chip->memory[i + 0x200] = (uint8_t)fgetc(fp);
+    }
+
+    fclose(fp);
+    return 0;
+}
+
