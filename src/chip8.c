@@ -1,4 +1,5 @@
 #include "chip8.h"
+#include "opcodes.h"
 #include <stdio.h>
 #include <string.h>
 #include <inttypes.h>
@@ -30,6 +31,7 @@ void chip8_init(Chip8 *chip)
     chip->sp = -1;
     chip->delay_timer = 0;
     chip->sound_timer = 0;
+    chip->draw_flag = 0;
 
     memset(chip->graphics, 0, sizeof(chip->graphics));
     memset(chip->stack, 0, sizeof(chip->stack));
@@ -90,5 +92,216 @@ int chip8_load(Chip8 *chip, const char *rom)
 
     fclose(fp);
     return 0;
+}
+
+void chip8_emulate(Chip8 *chip)
+{
+    uint16_t opcode = (chip->memory[chip->pc] << 8) | chip->memory[chip->pc + 1];
+
+    switch (N3(opcode))
+    {
+    case 0x0:
+        switch (opcode & 0xFFF)
+        {
+        case 0x0E0:
+            CLS(chip);
+            break;
+
+        case 0x0EE:
+            RET(chip);
+            break;
+
+        default:
+            SYS(chip, opcode);
+            break;
+        }
+
+        break;
+
+    case 0x1:
+        JMP(chip, opcode);
+        break;
+
+    case 0x2:
+        CALL(chip, opcode);
+        break;
+
+    case 0x3:
+        SE(chip, opcode);
+        break;
+
+    case 0x4:
+        SNE(chip, opcode);
+        break;
+
+    case 0x5:
+        if (N0(opcode) == 0x0)
+        {
+            SE(chip, opcode);
+        }
+        else
+        {
+            printf("Invalid opcode: 0x%4X\n", opcode);
+        }
+
+        break;
+
+    case 0x6:
+        LD(chip, opcode);
+        break;
+
+    case 0x7:
+        ADD(chip, opcode);
+        break;
+
+    case 0x8:
+        switch (opcode & 0xF)
+        {
+        case 0x0:
+            LD(chip, opcode);
+            break;
+
+        case 0x1:
+            OR(chip, opcode);
+            break;
+
+        case 0x2:
+            AND(chip, opcode);
+            break;
+
+        case 0x3:
+            XOR(chip, opcode);
+            break;
+
+        case 0x4:
+            ADD(chip, opcode);
+            break;
+
+        case 0x5:
+            SUB(chip, opcode);
+            break;
+
+        case 0x6:
+            SHR(chip, opcode);
+            break;
+
+        case 0x7:
+            SUBN(chip, opcode);
+            break;
+
+        case 0xE:
+            SHL(chip, opcode);
+            break;
+
+        default:
+            printf("Invalid opcode: 0x%4X\n", opcode);
+            break;
+        }
+
+        break;
+
+    case 0x9:
+        if (N0(opcode) == 0)
+        {
+            SNE(chip, opcode);
+        }
+        else
+        {
+            printf("Invalid opcode: 0x%4X\n", opcode);
+        }
+
+        break;
+
+    case 0xA:
+        LD(chip, opcode);
+        break;
+
+    case 0xB:
+        JMP(chip, opcode);
+        break;
+
+    case 0xC:
+        RND(chip, opcode);
+        break;
+
+    case 0xD:
+        DRW(chip, opcode);
+        break;
+
+    case 0xE:
+        switch (opcode & 0xFF)
+        {
+        case 0x9E:
+            SKP(chip, opcode);
+            break;
+
+        case 0xA1:
+            SKNP(chip, opcode);
+            break;
+
+        default:
+            printf("Invalid opcode: 0x%4X\n", opcode);
+            break;
+        }
+
+        break;
+
+    case 0xF:
+        switch (opcode & 0xFF)
+        {
+        case 0x7:
+            LD(chip, opcode);
+            break;
+
+        case 0xA:
+            LD(chip, opcode);
+            break;
+
+        case 0x15:
+            LD(chip, opcode);
+            break;
+
+        case 0x18:
+            LD(chip, opcode);
+            break;
+
+        case 0x1E:
+            ADD(chip, opcode);
+            break;
+
+        case 0x29:
+            LD(chip, opcode);
+            break;
+
+        case 0x33:
+            LD(chip, opcode);
+            break;
+
+        case 0x55:
+            LD(chip, opcode);
+            break;
+
+        case 0x65:
+            LD(chip, opcode);
+            break;
+
+        default:
+            printf("Invalid opcode: 0x%4X\n", opcode);
+            break;
+        }
+
+        break;
+
+    default:
+        printf("Invalid opcode: 0x%4X\n", opcode);
+        break;
+    }
+
+    /* Update timers. */
+    if (chip->delay_timer > 0)
+        (chip->delay_timer)--;
+
+    if (chip->sound_timer > 0)
+        (chip->sound_timer)--;
 }
 

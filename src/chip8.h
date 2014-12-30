@@ -3,6 +3,11 @@
 
 #include <stdint.h>
 
+#define N0(x) ((x) & 0xF)
+#define N1(x) (((x) >> 4) & 0xF)
+#define N2(x) (((x) >> 8) & 0xF)
+#define N3(x) (((x) >> 12) & 0xF)
+
 typedef struct tagChip8
 {
     uint8_t memory[4096];
@@ -14,6 +19,7 @@ typedef struct tagChip8
     uint8_t sound_timer;
     uint16_t stack[16];
     int16_t sp;
+    int draw_flag;
 } Chip8;
 
 void chip8_init(Chip8 *chip);
