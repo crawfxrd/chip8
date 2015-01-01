@@ -2,6 +2,7 @@
 #define CHIP8_CHIP8_H_
 
 #include <stdint.h>
+#include <stdbool.h>
 
 #define N0(x) ((x) & 0xF)
 #define N1(x) (((x) >> 4) & 0xF)
@@ -19,12 +20,12 @@ typedef struct tagChip8
     uint8_t sound_timer;
     uint16_t stack[16];
     int16_t sp;
-    int draw_flag;
+    bool draw_flag;
 } Chip8;
 
 void chip8_init(Chip8 *chip);
 void chip8_dump(Chip8 *chip);
-int chip8_load(Chip8 *chip, const char *rom);
+bool chip8_load(Chip8 *chip, const char *rom);
 
 #endif
 

@@ -31,7 +31,7 @@ void chip8_init(Chip8 *chip)
     chip->sp = -1;
     chip->delay_timer = 0;
     chip->sound_timer = 0;
-    chip->draw_flag = 0;
+    chip->draw_flag = false;
 
     memset(chip->graphics, 0, sizeof(chip->graphics));
     memset(chip->stack, 0, sizeof(chip->stack));
@@ -49,6 +49,7 @@ void chip8_dump(Chip8 *chip)
     printf("I = %" PRIu16 "\n", chip->I);
     printf("delay_timer = %" PRIu8 "\n", chip->delay_timer);
     printf("sound_timer = %"PRIu8 "\n", chip->sound_timer);
+    printf("draw_flag = %s\n", chip->draw_flag ? "true" : "false");
 
     printf("\n");
     printf("sp = %" PRId16 "\n", chip->sp);
@@ -62,7 +63,7 @@ void chip8_dump(Chip8 *chip)
     printf("\n");
 }
 
-int chip8_load(Chip8 *chip, const char *rom)
+bool chip8_load(Chip8 *chip, const char *rom)
 {
     FILE *fp;
     long size;
@@ -71,7 +72,7 @@ int chip8_load(Chip8 *chip, const char *rom)
     if (fp == NULL)
     {
         printf("Unable to open file %s\n", rom);
-        return 1;
+        return false;
     }
 
     fseek(fp, 0L, SEEK_END);
@@ -82,7 +83,7 @@ int chip8_load(Chip8 *chip, const char *rom)
     {
         puts("ROM too big");
         fclose(fp);
-        return 2;
+        return false;
     }
 
     for (int i = 0; i < size; i++)
@@ -91,7 +92,7 @@ int chip8_load(Chip8 *chip, const char *rom)
     }
 
     fclose(fp);
-    return 0;
+    return true;
 }
 
 void chip8_emulate(Chip8 *chip)

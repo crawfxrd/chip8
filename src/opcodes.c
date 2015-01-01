@@ -60,7 +60,7 @@ void CLS(Chip8 *chip)
     /* 00E0: Clears the screen. */
 
     memset(chip->graphics, 0, sizeof(chip->graphics));
-    chip->draw_flag = 1;
+    chip->draw_flag = true;
 
     chip->pc += 2;
 }
