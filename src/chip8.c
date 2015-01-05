@@ -1,8 +1,10 @@
 #include "chip8.h"
 #include "opcodes.h"
 #include <stdio.h>
+#include <stdlib.h>
 #include <string.h>
 #include <inttypes.h>
+#include <time.h>
 
 static const uint8_t chip8_fontset[80] =
 {
@@ -41,6 +43,8 @@ void chip8_init(Chip8 *chip)
     /* Load the fontset. */
     for (int i = 0; i < 80; i++)
         chip->memory[i] = chip8_fontset[i];
+
+    srand(time(NULL));
 }
 
 void chip8_dump(Chip8 *chip)

@@ -202,10 +202,9 @@ void RET(Chip8 *chip)
 
 void RND(Chip8 *chip, uint16_t opcode)
 {
-    /* CNNN: Sets VX to a random number AND NN. */
+    /* CXNN: Sets VX to a random number AND NN. */
 
-    /* TODO: Implement CXNN. */
-    puts("CXNN is unimplemented!");
+    chip->V[N2(opcode)] = (opcode & 0xFF) & (rand() & 0xFF);
 
     chip->pc += 2;
 }
