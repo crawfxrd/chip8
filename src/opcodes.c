@@ -52,7 +52,9 @@ void CALL(Chip8 *chip, uint16_t opcode)
 {
     /* 2NNN: Calls subroutine at NNN. */
 
-    chip->stack[++(chip->sp)] = chip->pc;
+    /* Push the address of the next instruction to be executed. */
+    chip->stack[++(chip->sp)] = chip->pc + 2;
+
     chip->pc = opcode & 0xFFF;
 }
 
@@ -199,8 +201,6 @@ void RET(Chip8 *chip)
     /* 00EE: Returns from a subroutine. */
 
     chip->pc = chip->stack[(chip->sp)--];
-
-    chip->pc += 2;
 }
 
 void RND(Chip8 *chip, uint16_t opcode)
