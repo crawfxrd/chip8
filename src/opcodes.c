@@ -1,5 +1,6 @@
 #include "opcodes.h"
 #include <stdio.h>
+#include <stdlib.h>
 #include <string.h>
 
 void ADD(Chip8 *chip, uint16_t opcode)
@@ -75,6 +76,7 @@ void DRW(Chip8 *chip, uint16_t opcode)
 
     /* TODO: Implement DXYN. */
     puts("DXYN is unimplemented!");
+    chip->halt = true;
 
     chip->pc += 2;
 }
@@ -129,6 +131,7 @@ void LD(Chip8 *chip, uint16_t opcode)
 
             /* TODO: Implement FX0A. */
             puts("FX0A is unimplemented!");
+            chip->halt = true;
         }
         else if ((opcode & 0xFF) == 0x15)
         {
@@ -259,6 +262,7 @@ void SKNP(Chip8 *chip, uint16_t opcode)
 
     /* TODO: Implement EXA1. */
     puts("EXA1 is unimplemented!");
+    chip->halt = true;
 
     chip->pc += 2;
 }
@@ -269,6 +273,7 @@ void SKP(Chip8 *chip, uint16_t opcode)
 
     /* TODO: Implement EX9E. */
     puts("EX9E is unimplemented!");
+    chip->halt = true;
 
     chip->pc += 2;
 }

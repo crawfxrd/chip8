@@ -26,6 +26,8 @@ static const uint8_t chip8_fontset[80] =
     0xF0, 0x80, 0xE0, 0x80, 0x80,   // F
 };
 
+static void chip8_cycle(Chip8 *chip);
+
 void chip8_init(Chip8 *chip)
 {
     chip->pc = 0x200;
@@ -34,6 +36,7 @@ void chip8_init(Chip8 *chip)
     chip->delay_timer = 0;
     chip->sound_timer = 0;
     chip->draw_flag = false;
+    chip->halt = false;
 
     memset(chip->graphics, 0, sizeof(chip->graphics));
     memset(chip->stack, 0, sizeof(chip->stack));
@@ -99,7 +102,28 @@ bool chip8_load(Chip8 *chip, const char *rom)
     return true;
 }
 
-void chip8_emulate(Chip8 *chip)
+void chip8_run(Chip8 *chip)
+{
+    while(!(chip->halt))
+    {
+        chip8_cycle(chip);
+
+        if (chip->draw_flag)
+        {
+            printf("Redraw requested at pc=0x%03X\n", chip->pc);
+            chip->draw_flag = false;
+        }
+
+        /* Update timers. */
+        if (chip->delay_timer > 0)
+            (chip->delay_timer)--;
+
+        if (chip->sound_timer > 0)
+            (chip->sound_timer)--;
+    }
+}
+
+static void chip8_cycle(Chip8 *chip)
 {
     uint16_t opcode = (chip->memory[chip->pc] << 8) | chip->memory[chip->pc + 1];
 
@@ -147,6 +171,7 @@ void chip8_emulate(Chip8 *chip)
         else
         {
             printf("Invalid opcode: 0x%4X\n", opcode);
+            chip->halt = true;
         }
 
         break;
@@ -200,6 +225,7 @@ void chip8_emulate(Chip8 *chip)
 
         default:
             printf("Invalid opcode: 0x%4X\n", opcode);
+            chip->halt = true;
             break;
         }
 
@@ -213,6 +239,7 @@ void chip8_emulate(Chip8 *chip)
         else
         {
             printf("Invalid opcode: 0x%4X\n", opcode);
+            chip->halt = true;
         }
 
         break;
@@ -246,6 +273,7 @@ void chip8_emulate(Chip8 *chip)
 
         default:
             printf("Invalid opcode: 0x%4X\n", opcode);
+            chip->halt = true;
             break;
         }
 
@@ -292,6 +320,7 @@ void chip8_emulate(Chip8 *chip)
 
         default:
             printf("Invalid opcode: 0x%4X\n", opcode);
+            chip->halt = true;
             break;
         }
 
@@ -299,14 +328,8 @@ void chip8_emulate(Chip8 *chip)
 
     default:
         printf("Invalid opcode: 0x%4X\n", opcode);
+        chip->halt = true;
         break;
     }
-
-    /* Update timers. */
-    if (chip->delay_timer > 0)
-        (chip->delay_timer)--;
-
-    if (chip->sound_timer > 0)
-        (chip->sound_timer)--;
 }
 

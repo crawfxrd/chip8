@@ -21,11 +21,13 @@ typedef struct tagChip8
     uint16_t stack[16];
     int16_t sp;
     bool draw_flag;
+    bool halt;
 } Chip8;
 
 void chip8_init(Chip8 *chip);
 void chip8_dump(Chip8 *chip);
 bool chip8_load(Chip8 *chip, const char *rom);
+void chip8_run(Chip8 *chip);
 
 #endif
 

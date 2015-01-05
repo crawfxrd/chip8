@@ -12,16 +12,19 @@ int main(int argc, char *argv[])
     }
 
     chip8_init(&chip);
-    chip8_dump(&chip);
 
-    if (chip8_load(&chip, argv[1]))
-    {
-        puts("ROM read into memory.");
-    }
-    else
+    if (!chip8_load(&chip, argv[1]))
     {
         puts("Failed to load ROM.");
+        return 1;
     }
+
+    puts("ROM read into memory.");
+
+    chip8_run(&chip);
+
+    printf("\nDumping chip info:\n");
+    chip8_dump(&chip);
 
     return 0;
 }
