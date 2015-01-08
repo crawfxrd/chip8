@@ -10,7 +10,7 @@ The CMakeLists.txt file is very simple and expects clang as the compiler.
 To build, execute the following in the top level:
 
 ``` shell
-mkdir build & cd build
+mkdir build && cd build
 cmake ..
 make
 ```
