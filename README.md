@@ -36,7 +36,6 @@ implementation.
 * [Cowgod's Chip-8 Technical Reference][Cowgod]
 * [Mastering CHIP-8][mattmik]
 * [How to write an emulator (CHIP-8 interpreter)][multigesture]
-* [Chip-8 Games Pack][zophar]
 
 ## License
 
