@@ -1,5 +1,6 @@
 #include "chip8.h"
 #include "opcodes.h"
+#include "sdl.h"
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
@@ -23,7 +24,7 @@ static const uint8_t chip8_fontset[80] =
     0xF0, 0x80, 0x80, 0x80, 0xF0,   // C
     0xE0, 0x90, 0x90, 0x90, 0xE0,   // D
     0xF0, 0x80, 0xF0, 0x80, 0xF0,   // E
-    0xF0, 0x80, 0xF0, 0x80, 0x80,   // F
+    0xF0, 0x80, 0xF0, 0x80, 0x80    // F
 };
 
 static void chip8_cycle(Chip8 *chip);
@@ -104,13 +105,29 @@ bool chip8_load(Chip8 *chip, const char *rom)
 
 void chip8_run(Chip8 *chip)
 {
+    if (!sdl_init())
+    {
+        printf("Error starting SDL\n");
+        chip->halt = true;
+    }
+
     while(!(chip->halt))
     {
+        SDL_Event event;
+
         chip8_cycle(chip);
+
+        while (SDL_PollEvent(&event))
+        {
+            if (event.type == SDL_QUIT)
+            {
+                chip->halt = true;
+            }
+        }
 
         if (chip->draw_flag)
         {
-            printf("Redraw requested at pc=0x%03X\n", chip->pc);
+            sdl_render(chip);
             chip->draw_flag = false;
         }
 
@@ -121,6 +138,8 @@ void chip8_run(Chip8 *chip)
         if (chip->sound_timer > 0)
             (chip->sound_timer)--;
     }
+
+    sdl_cleanup();
 }
 
 static void chip8_cycle(Chip8 *chip)
