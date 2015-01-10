@@ -70,15 +70,40 @@ void CLS(Chip8 *chip)
 
 void DRW(Chip8 *chip, uint16_t opcode)
 {
-    /* DXYN: Sprites stored in memory at location in index register (I),
-     *       maximum 8 bits wide. Wraps around the screen. If when drawn,
-     *       clears a pixel, register VF is set to 1, otherwise it is zero.
-     *       All drawing is XOR drawing.
+    /* DXYN: Draw a sprite at (VX, VY) with N bytes of sprite data starting
+     *       at the address stored in I. Set VF to 1 if a pixel is unset
+     *       and 0 otherwise.
      */
 
-    /* TODO: Implement DXYN. */
-    puts("DXYN is unimplemented!");
-    chip->halt = true;
+    uint8_t x = chip->V[N2(opcode)];
+    uint8_t y = chip->V[N1(opcode)];
+    uint8_t height = N0(opcode);
+
+    /* Reset VF before checking for collision. */
+    chip->V[0xF] = 0;
+
+    for (int row = 0; row < height; row++)
+    {
+        uint8_t sprite_row = chip->memory[chip->I + row];
+
+        /* Scan through the byte to check if each bit is set. */
+        for (int col = 0; col < 8; col++)
+        {
+            /* We onlt care if the pixel of the sprite is set. */
+            if ((sprite_row & (0x80 >> col)) != 0)
+            {
+                int pos = ((y + row) * 64) + (x + col);
+
+                /* Check for collision. */
+                if (chip->graphics[pos] == 1)
+                    chip->V[0xF] = 1;
+
+                chip->graphics[pos] ^= 1;
+            }
+        }
+    }
+
+    chip->draw_flag = true;
 
     chip->pc += 2;
 }
