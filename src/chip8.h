@@ -3,6 +3,7 @@
 
 #include <stdint.h>
 #include <stdbool.h>
+#include <SDL2/SDL.h>
 
 #define N0(x) ((x) & 0xF)
 #define N1(x) (((x) >> 4) & 0xF)
@@ -22,12 +23,15 @@ typedef struct tagChip8
     int16_t sp;
     bool draw_flag;
     bool halt;
+    bool keypad[16];
+    SDL_Event event;
 } Chip8;
 
 void chip8_init(Chip8 *chip);
 void chip8_dump(Chip8 *chip);
 bool chip8_load(Chip8 *chip, const char *rom);
 void chip8_run(Chip8 *chip);
+uint8_t chip8_getkey(Chip8 *chip);
 
 #endif
 

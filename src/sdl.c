@@ -112,5 +112,7 @@ void sdl_render(Chip8 *chip)
 
     SDL_SetRenderDrawColor(gRenderer, 0, 0, 0, 255);
     SDL_RenderPresent(gRenderer);
+
+    chip->draw_flag = false;
 }
 

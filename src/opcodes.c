@@ -156,9 +156,7 @@ void LD(Chip8 *chip, uint16_t opcode)
         {
             /* FX0A: A key press is awaited, and then stored in VX. */
 
-            /* TODO: Implement FX0A. */
-            puts("FX0A is unimplemented!");
-            chip->halt = true;
+            chip->V[N2(opcode)] = chip8_getkey(chip);
         }
         else if ((opcode & 0xFF) == 0x15)
         {
@@ -285,9 +283,8 @@ void SKNP(Chip8 *chip, uint16_t opcode)
 {
     /* EXA1: Skips the next instruction if the key stored in VX is not pressed. */
 
-    /* TODO: Implement EXA1. */
-    puts("EXA1 is unimplemented!");
-    chip->halt = true;
+    if (!chip->keypad[chip->V[N2(opcode)]])
+        chip->pc += 2;
 
     chip->pc += 2;
 }
@@ -296,9 +293,8 @@ void SKP(Chip8 *chip, uint16_t opcode)
 {
     /* EX9E: Skips the next instruction if the key stored in VX is pressed. */
 
-    /* TODO: Implement EX9E. */
-    puts("EX9E is unimplemented!");
-    chip->halt = true;
+    if (chip->keypad[chip->V[N2(opcode)]])
+        chip->pc += 2;
 
     chip->pc += 2;
 }
@@ -360,7 +356,7 @@ void SYS(Chip8 *chip, uint16_t opcode)
 {
     /* 0NNN: Calls RCA 1802 program at address NNN. */
 
-    chip->pc += 2;
+    chip->halt = true;
 }
 
 void XOR(Chip8 *chip, uint16_t opcode)

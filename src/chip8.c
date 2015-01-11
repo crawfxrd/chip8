@@ -28,6 +28,7 @@ static const uint8_t chip8_fontset[80] =
 };
 
 static void chip8_cycle(Chip8 *chip);
+static void chip8_setkey(Chip8 *chip);
 
 void chip8_init(Chip8 *chip)
 {
@@ -43,6 +44,7 @@ void chip8_init(Chip8 *chip)
     memset(chip->stack, 0, sizeof(chip->stack));
     memset(chip->V, 0, sizeof(chip->V));
     memset(chip->memory, 0, sizeof(chip->memory));
+    memset(chip->keypad, false, sizeof(chip->keypad));
 
     /* Load the fontset. */
     for (int i = 0; i < 80; i++)
@@ -113,23 +115,7 @@ void chip8_run(Chip8 *chip)
 
     while(!(chip->halt))
     {
-        SDL_Event event;
-
         chip8_cycle(chip);
-
-        while (SDL_PollEvent(&event))
-        {
-            if (event.type == SDL_QUIT)
-            {
-                chip->halt = true;
-            }
-        }
-
-        if (chip->draw_flag)
-        {
-            sdl_render(chip);
-            chip->draw_flag = false;
-        }
 
         /* Update timers. */
         if (chip->delay_timer > 0)
@@ -137,9 +123,94 @@ void chip8_run(Chip8 *chip)
 
         if (chip->sound_timer > 0)
             (chip->sound_timer)--;
+
+        while (SDL_PollEvent(&chip->event))
+        {
+            if (chip->event.type == SDL_QUIT)
+            {
+                chip->halt = true;
+            }
+            else if (chip->event.type == SDL_KEYDOWN ||
+                     chip->event.type == SDL_KEYUP)
+            {
+                chip8_setkey(chip);
+            }
+        }
+
+        if (chip->draw_flag)
+            sdl_render(chip);
+        else
+            SDL_Delay(5);
     }
 
     sdl_cleanup();
+}
+
+uint8_t chip8_getkey(Chip8 *chip)
+{
+    while (true)
+    {
+        SDL_WaitEvent(&chip->event);
+
+        if (chip->event.type != SDL_KEYDOWN)
+            continue;
+
+        chip8_setkey(chip);
+        switch (chip->event.key.keysym.sym)
+        {
+        case SDLK_1: return 0x1;
+        case SDLK_2: return 0x2;
+        case SDLK_3: return 0x3;
+        case SDLK_4: return 0xC;
+
+        case SDLK_q: return 0x4;
+        case SDLK_w: return 0x5;
+        case SDLK_e: return 0x6;
+        case SDLK_r: return 0xD;
+
+        case SDLK_a: return 0x7;
+        case SDLK_s: return 0x8;
+        case SDLK_d: return 0x9;
+        case SDLK_f: return 0xE;
+
+        case SDLK_z: return 0xA;
+        case SDLK_x: return 0x0;
+        case SDLK_c: return 0xB;
+        case SDLK_v: return 0xF;
+
+        case SDLK_SPACE:
+            chip->halt = true;
+            return 0xFF;
+        }
+    }
+}
+
+static void chip8_setkey(Chip8 *chip)
+{
+    bool val = (chip->event.type == SDL_KEYDOWN) ? true : false;
+
+    switch (chip->event.key.keysym.sym)
+    {
+    case SDLK_1: chip->keypad[0x1] = val; break;
+    case SDLK_2: chip->keypad[0x2] = val; break;
+    case SDLK_3: chip->keypad[0x3] = val; break;
+    case SDLK_4: chip->keypad[0xC] = val; break;
+
+    case SDLK_q: chip->keypad[0x4] = val; break;
+    case SDLK_w: chip->keypad[0x5] = val; break;
+    case SDLK_e: chip->keypad[0x6] = val; break;
+    case SDLK_r: chip->keypad[0xD] = val; break;
+
+    case SDLK_a: chip->keypad[0x7] = val; break;
+    case SDLK_s: chip->keypad[0x8] = val; break;
+    case SDLK_d: chip->keypad[0x9] = val; break;
+    case SDLK_f: chip->keypad[0xE] = val; break;
+
+    case SDLK_z: chip->keypad[0xA] = val; break;
+    case SDLK_x: chip->keypad[0x0] = val; break;
+    case SDLK_c: chip->keypad[0xB] = val; break;
+    case SDLK_v: chip->keypad[0xF] = val; break;
+    }
 }
 
 static void chip8_cycle(Chip8 *chip)
