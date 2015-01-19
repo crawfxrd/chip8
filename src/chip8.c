@@ -27,8 +27,10 @@ static const uint8_t chip8_fontset[80] =
     0xF0, 0x80, 0xF0, 0x80, 0x80    // F
 };
 
-static void chip8_cycle(Chip8 *chip);
-static void chip8_setkey(Chip8 *chip);
+static void Cycle(Chip8 *chip);
+static void HandleIRQ(Chip8 *chip);
+static void UpdateTimers(Chip8 *chip);
+static void SetKey(Chip8 *chip, bool isdown);
 
 void chip8_init(Chip8 *chip)
 {
@@ -115,32 +117,17 @@ void chip8_run(Chip8 *chip)
 
     while(!(chip->halt))
     {
-        chip8_cycle(chip);
-
-        /* Update timers. */
-        if (chip->delay_timer > 0)
-            (chip->delay_timer)--;
-
-        if (chip->sound_timer > 0)
-            (chip->sound_timer)--;
+        Cycle(chip);
 
         while (SDL_PollEvent(&chip->event))
-        {
-            if (chip->event.type == SDL_QUIT)
-            {
-                chip->halt = true;
-            }
-            else if (chip->event.type == SDL_KEYDOWN ||
-                     chip->event.type == SDL_KEYUP)
-            {
-                chip8_setkey(chip);
-            }
-        }
+            HandleIRQ(chip);
+
+        UpdateTimers(chip);
 
         if (chip->draw_flag)
             sdl_render(chip);
-        else
-            SDL_Delay(5);
+
+        SDL_Delay(2);
     }
 
     sdl_cleanup();
@@ -155,7 +142,7 @@ uint8_t chip8_getkey(Chip8 *chip)
         if (chip->event.type != SDL_KEYDOWN)
             continue;
 
-        chip8_setkey(chip);
+        SetKey(chip, true);
         switch (chip->event.key.keysym.sym)
         {
         case SDLK_1: return 0x1;
@@ -185,35 +172,64 @@ uint8_t chip8_getkey(Chip8 *chip)
     }
 }
 
-static void chip8_setkey(Chip8 *chip)
+static void HandleIRQ(Chip8 *chip)
 {
-    bool val = (chip->event.type == SDL_KEYDOWN) ? true : false;
-
-    switch (chip->event.key.keysym.sym)
+    switch (chip->event.type)
     {
-    case SDLK_1: chip->keypad[0x1] = val; break;
-    case SDLK_2: chip->keypad[0x2] = val; break;
-    case SDLK_3: chip->keypad[0x3] = val; break;
-    case SDLK_4: chip->keypad[0xC] = val; break;
+    case SDL_QUIT:
+        chip->halt = true;
+        break;
 
-    case SDLK_q: chip->keypad[0x4] = val; break;
-    case SDLK_w: chip->keypad[0x5] = val; break;
-    case SDLK_e: chip->keypad[0x6] = val; break;
-    case SDLK_r: chip->keypad[0xD] = val; break;
+    case SDL_KEYDOWN:
+        if (chip->event.key.keysym.sym == SDLK_ESCAPE)
+            chip->halt = true;
+        else
+            SetKey(chip, true);
 
-    case SDLK_a: chip->keypad[0x7] = val; break;
-    case SDLK_s: chip->keypad[0x8] = val; break;
-    case SDLK_d: chip->keypad[0x9] = val; break;
-    case SDLK_f: chip->keypad[0xE] = val; break;
+        break;
 
-    case SDLK_z: chip->keypad[0xA] = val; break;
-    case SDLK_x: chip->keypad[0x0] = val; break;
-    case SDLK_c: chip->keypad[0xB] = val; break;
-    case SDLK_v: chip->keypad[0xF] = val; break;
+    case SDL_KEYUP:
+        SetKey(chip, false);
+        break;
     }
 }
 
-static void chip8_cycle(Chip8 *chip)
+static void SetKey(Chip8 *chip, bool isdown)
+{
+    switch (chip->event.key.keysym.sym)
+    {
+    case SDLK_1: chip->keypad[0x1] = isdown; break;
+    case SDLK_2: chip->keypad[0x2] = isdown; break;
+    case SDLK_3: chip->keypad[0x3] = isdown; break;
+    case SDLK_4: chip->keypad[0xC] = isdown; break;
+
+    case SDLK_q: chip->keypad[0x4] = isdown; break;
+    case SDLK_w: chip->keypad[0x5] = isdown; break;
+    case SDLK_e: chip->keypad[0x6] = isdown; break;
+    case SDLK_r: chip->keypad[0xD] = isdown; break;
+
+    case SDLK_a: chip->keypad[0x7] = isdown; break;
+    case SDLK_s: chip->keypad[0x8] = isdown; break;
+    case SDLK_d: chip->keypad[0x9] = isdown; break;
+    case SDLK_f: chip->keypad[0xE] = isdown; break;
+
+    case SDLK_z: chip->keypad[0xA] = isdown; break;
+    case SDLK_x: chip->keypad[0x0] = isdown; break;
+    case SDLK_c: chip->keypad[0xB] = isdown; break;
+    case SDLK_v: chip->keypad[0xF] = isdown; break;
+    }
+}
+
+static void UpdateTimers(Chip8 *chip)
+{
+    if (chip->delay_timer > 0)
+        (chip->delay_timer)--;
+
+    if (chip->sound_timer > 0)
+        (chip->sound_timer)--;
+}
+
+static void Cycle(Chip8 *chip)
 {
     uint16_t opcode = (chip->memory[chip->pc] << 8) | chip->memory[chip->pc + 1];
 
