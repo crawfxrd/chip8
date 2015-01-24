@@ -7,7 +7,7 @@ void ADD(Chip8 *chip, uint16_t opcode)
 {
     if (N3(opcode) == 0x7)
     {
-        /* 7NXX: Adds NN to VX. */
+        /* 7XNN: Adds NN to VX. */
 
         chip->V[N2(opcode)] += opcode & 0xFF;
     }
@@ -89,7 +89,7 @@ void DRW(Chip8 *chip, uint16_t opcode)
         /* Scan through the byte to check if each bit is set. */
         for (int col = 0; col < 8; col++)
         {
-            /* We onlt care if the pixel of the sprite is set. */
+            /* We only care if the pixel of the sprite is set. */
             if ((sprite_row & (0x80 >> col)) != 0)
             {
                 int pos = ((y + row) * 64) + (x + col);

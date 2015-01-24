@@ -48,7 +48,7 @@ void chip8_init(Chip8 *chip)
     memset(chip->memory, 0, sizeof(chip->memory));
     memset(chip->keypad, false, sizeof(chip->keypad));
 
-    /* Load the fontset. */
+    /* Load the font set. */
     for (int i = 0; i < 80; i++)
         chip->memory[i] = chip8_fontset[i];
 
