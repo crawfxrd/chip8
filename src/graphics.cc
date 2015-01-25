@@ -47,7 +47,7 @@ void Graphics::Render()
 }
 
 
-void Graphics::FillRects(const uint8_t p[64 * 32])
+void Graphics::FillRects(const std::array<uint8_t, (64 * 32)> (&p))
 {
     SDL_Rect rect = {0, 0, 10, 10};
 

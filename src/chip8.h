@@ -2,6 +2,7 @@
 #define CHIP8_CHIP8_H_
 
 #include <iostream>
+#include <array>
 #include <cstdint>
 
 struct Graphics;
@@ -16,10 +17,10 @@ struct Chip8
     void Run();
 
 private:
-    uint8_t* memory_;
-    uint8_t* graphics_map_;
-    uint8_t* V_;
-    uint16_t* stack_;
+    std::array<uint8_t, 4096> memory_;
+    std::array<uint8_t, (64 * 32)> graphics_map_;
+    std::array<uint8_t, 16> V_;
+    std::array<uint16_t, 16> stack_;
     int8_t sp_;
     uint16_t I_;
     uint16_t pc_;

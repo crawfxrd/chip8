@@ -1,6 +1,7 @@
 #ifndef CHIP8_GRAPHICS_H_
 #define CHIP8_GRAPHICS_H_
 
+#include <array>
 #include <cstdint>
 
 struct SDL_Window;
@@ -13,7 +14,7 @@ struct Graphics
 
     void Clear();
     void Render();
-    void FillRects(const uint8_t p[64 * 32]);
+    void FillRects(const std::array<uint8_t, (64 * 32)> (&p));
 
 private:
     SDL_Window* window_;

@@ -9,10 +9,10 @@
 
 
 Chip8::Chip8() :
-    memory_(new uint8_t[4096]),
-    graphics_map_(new uint8_t[64 * 32]),
-    V_(new uint8_t[16]),
-    stack_(new uint16_t[16]),
+    memory_{{0}},
+    graphics_map_{{0}},
+    V_{{0}},
+    stack_{{0}},
     sp_(-1),
     I_(0),
     pc_(0x200),
@@ -29,10 +29,6 @@ Chip8::Chip8() :
 
 Chip8::~Chip8()
 {
-    delete[] memory_;
-    delete[] V_;
-    delete[] stack_;
-
     SDL_Quit();
 }
 
@@ -156,7 +152,7 @@ void Chip8::Cycle(Input& input)
         {
         case 0x0E0:
             /* 00E0: Clears the screen. */
-            memset(graphics_map_, 0, (sizeof(graphics_map_) / sizeof(*graphics_map_)));
+            graphics_map_.fill(0);
             redraw_ = true;
             pc_ += 2;
             break;
