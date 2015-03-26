@@ -2,9 +2,8 @@
 #include "graphics.h"
 #include "input.h"
 
-#include <cstdio>
+#include <algorithm>
 #include <cstring>
-#include <ctime>
 #include <SDL2/SDL.h>
 
 
@@ -19,11 +18,10 @@ Chip8::Chip8() :
     delay_timer_(0),
     sound_timer_(0),
     redraw_(false),
-    halt_(false)
+    halt_(false),
+    mt_{std::random_device{}()}
 {
     SDL_Init(SDL_INIT_EVERYTHING);
-    srand(time(nullptr));
-
     LoadFontSet();
 }
 
@@ -136,6 +134,12 @@ void Chip8::Draw(Graphics& graphics)
     graphics.Clear();
     graphics.FillRects(graphics_map_);
     graphics.Render();
+}
+
+uint8_t Chip8::RandomByte()
+{
+    std::uniform_int_distribution<uint8_t> dist(0, 255);
+    return dist(mt_);
 }
 
 void Chip8::Cycle(Input& input)
@@ -350,7 +354,7 @@ void Chip8::Cycle(Input& input)
 
     case 0xC:
         /* CXNN: Sets VX to a random number AND NN. */
-        V_[X] = (opcode & 0xFF) & (rand() & 0xFF);
+        V_[X] = (opcode & 0xFF) & RandomByte();
         pc_ += 2;
         break;
 

@@ -1,9 +1,10 @@
 #ifndef CHIP8_CHIP8_H_
 #define CHIP8_CHIP8_H_
 
-#include <iostream>
 #include <array>
 #include <cstdint>
+#include <iostream>
+#include <random>
 
 struct Graphics;
 struct Input;
@@ -28,10 +29,12 @@ private:
     uint8_t sound_timer_;
     bool redraw_;
     bool halt_;
+    std::mt19937 mt_;
 
     void LoadFontSet();
     void Draw(Graphics& graphics);
     void Cycle(Input& input);
+    uint8_t RandomByte();
 };
 
 #endif
