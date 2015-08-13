@@ -70,6 +70,7 @@ int main(int argc, char *argv[])
         if (chip.Draw)
         {
             UpdateDisplay(chip.Display);
+            chip.Draw = false;
         }
 
         UpdateTimers(&chip);
