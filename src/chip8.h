@@ -1,41 +1,37 @@
 #ifndef CHIP8_CHIP8_H_
 #define CHIP8_CHIP8_H_
 
-#include <array>
-#include <cstdint>
-#include <iostream>
-#include <random>
+#include <stdint.h>
+#include <stdbool.h>
+#include <SDL2/SDL.h>
 
-struct Graphics;
-struct Input;
+#define N0(x) ((x) & 0xF)
+#define N1(x) (((x) >> 4) & 0xF)
+#define N2(x) (((x) >> 8) & 0xF)
+#define N3(x) (((x) >> 12) & 0xF)
 
-struct Chip8
+typedef struct tagChip8
 {
-    Chip8();
-    ~Chip8();
+    uint8_t memory[4096];
+    uint8_t V[16];
+    uint16_t I;
+    uint16_t pc;
+    uint8_t graphics[64 * 32];
+    uint8_t delay_timer;
+    uint8_t sound_timer;
+    uint16_t stack[16];
+    int16_t sp;
+    bool draw_flag;
+    bool halt;
+    bool keypad[16];
+    SDL_Event event;
+} Chip8;
 
-    bool LoadRom(const std::string& rom);
-    void Run();
-
-private:
-    std::array<uint8_t, 4096> memory_;
-    std::array<uint8_t, (64 * 32)> graphics_map_;
-    std::array<uint8_t, 16> V_;
-    std::array<uint16_t, 16> stack_;
-    int8_t sp_;
-    uint16_t I_;
-    uint16_t pc_;
-    uint8_t delay_timer_;
-    uint8_t sound_timer_;
-    bool redraw_;
-    bool halt_;
-    std::mt19937 mt_;
-
-    void LoadFontSet();
-    void Draw(Graphics& graphics);
-    void Cycle(Input& input);
-    uint8_t RandomByte();
-};
+void chip8_init(Chip8 *chip);
+void chip8_dump(Chip8 *chip);
+bool chip8_load(Chip8 *chip, const char *rom);
+void chip8_run(Chip8 *chip);
+uint8_t chip8_getkey(Chip8 *chip);
 
 #endif
 
