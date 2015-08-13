@@ -1,13 +1,11 @@
-#ifndef CHIP8_SDL_H_
-#define CHIP8_SDL_H_
+#pragma once
 
-#include "chip8.h"
 #include <stdbool.h>
+#include <stdint.h>
+
 #include <SDL2/SDL.h>
 
-bool sdl_init(void);
-void sdl_cleanup(void);
-void sdl_render(Chip8 *chip);
-
-#endif
+bool SetupSDL(void);
+void CleanupSDL(void);
+void UpdateDisplay(uint8_t *);
 

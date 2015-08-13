@@ -1,46 +1,23 @@
-#include "sdl.h"
 #include <stdio.h>
 
-static bool create_window(void);
-static bool create_renderer(void);
-static void init_display(void);
+#include "sdl.h"
 
 static const int SCREEN_WIDTH = 640;
 static const int SCREEN_HEIGHT = 320;
 
 static SDL_Window *gWindow = NULL;
 static SDL_Renderer *gRenderer = NULL;
-static SDL_Rect gDisplay[64 * 32];
+static SDL_Texture *gTexture = NULL;
 
-bool sdl_init(void)
-{
-    if (SDL_Init(SDL_INIT_EVERYTHING) != 0)
-    {
-        printf("Failed to initialize SDL: %s\n", SDL_GetError());
-        return false;
-    }
-
-    if (!create_window())
-        return false;
-
-    if (!create_renderer())
-        return false;
-
-    SDL_RenderSetLogicalSize(gRenderer, SCREEN_WIDTH, SCREEN_HEIGHT);
-    SDL_SetRenderDrawColor(gRenderer, 0, 0, 0, 255);
-
-    init_display();
-
-    return true;
-}
-
-static bool create_window(void)
+static
+bool
+CreateWindow(void)
 {
     gWindow = SDL_CreateWindow(
-            "CHIP-8",
-            SDL_WINDOWPOS_CENTERED,
-            SDL_WINDOWPOS_CENTERED,
-            SCREEN_WIDTH, SCREEN_HEIGHT, 0);
+        "CHIP-8",
+        SDL_WINDOWPOS_CENTERED,
+        SDL_WINDOWPOS_CENTERED,
+        SCREEN_WIDTH, SCREEN_HEIGHT, 0);
 
     if (gWindow == NULL)
     {
@@ -51,7 +28,9 @@ static bool create_window(void)
     return true;
 }
 
-static bool create_renderer(void)
+static
+bool
+CreateRenderer(void)
 {
     gRenderer = SDL_CreateRenderer(gWindow, -1, 0);
 
@@ -64,23 +43,57 @@ static bool create_renderer(void)
     return true;
 }
 
-static void init_display(void)
+static
+bool
+CreateTexture(void)
 {
-    for (int y = 0; y < 32; y++)
+    gTexture = SDL_CreateTexture(
+        gRenderer,
+        SDL_PIXELFORMAT_RGBA8888,
+        SDL_TEXTUREACCESS_STREAMING,
+        64, 32);
+
+    if (gTexture == NULL)
     {
-        for (int x = 0; x < 64; x++)
-        {
-            gDisplay[(y * 64) + x].x = (x * 10);
-            gDisplay[(y * 64) + x].y = (y * 10);
-            gDisplay[(y * 64) + x].w = 10;
-            gDisplay[(y * 64) + x].h = 10;
-        }
+        printf("Failed to create texture: %s\n", SDL_GetError());
+        return false;
     }
 
+    return true;
 }
 
-void sdl_cleanup()
+bool
+SetupSDL(void)
 {
+    if (SDL_Init(SDL_INIT_EVERYTHING) != 0)
+    {
+        printf("Failed to initialize SDL: %s\n", SDL_GetError());
+        return false;
+    }
+
+    if (!CreateWindow())
+        return false;
+
+    if (!CreateRenderer())
+        return false;
+
+    if (!CreateTexture())
+        return false;
+
+    SDL_RenderSetLogicalSize(gRenderer, SCREEN_WIDTH, SCREEN_HEIGHT);
+
+    return true;
+}
+
+void
+CleanupSDL(void)
+{
+    if (gTexture != NULL)
+    {
+        SDL_DestroyTexture(gTexture);
+        gTexture = NULL;
+    }
+
     if (gRenderer != NULL)
     {
         SDL_DestroyRenderer(gRenderer);
@@ -96,23 +109,22 @@ void sdl_cleanup()
     SDL_Quit();
 }
 
-void sdl_render(Chip8 *chip)
+void
+UpdateDisplay(uint8_t *display)
 {
-    SDL_RenderClear(gRenderer);
-    SDL_SetRenderDrawColor(gRenderer, 255, 255, 255, 255);
+    void *pixels;
+    int pitch;
 
-    //SDL_RenderFillRects(gRenderer, gDisplay, (64 * 32));
+    SDL_LockTexture(gTexture, NULL, &pixels, &pitch);
+
     for (int i = 0; i < (64 * 32); i++)
     {
-        if (chip->graphics[i] == 1)
-        {
-            SDL_RenderFillRect(gRenderer, &gDisplay[i]);
-        }
+        *(((int *)pixels) + i) = display[i] ? -1: 0;
     }
 
-    SDL_SetRenderDrawColor(gRenderer, 0, 0, 0, 255);
-    SDL_RenderPresent(gRenderer);
+    SDL_UnlockTexture(gTexture);
 
-    chip->draw_flag = false;
+    SDL_RenderCopy(gRenderer, gTexture, NULL, NULL);
+    SDL_RenderPresent(gRenderer);
 }
 

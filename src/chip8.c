@@ -1,14 +1,17 @@
-#include "chip8.h"
-#include "opcodes.h"
-#include "sdl.h"
+#include <stdbool.h>
+#include <stdint.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
-#include <inttypes.h>
-#include <time.h>
 
-static const uint8_t chip8_fontset[80] =
-{
+#include "chip8.h"
+
+#define N0(x) ((x) & 0xF)
+#define N1(x) (((x) >> 4) & 0xF)
+#define N2(x) (((x) >> 8) & 0xF)
+#define N3(x) (((x) >> 12) & 0xF)
+
+static const uint8_t fontset[80] = {
     0xF0, 0x90, 0x90, 0x90, 0xF0,   // 0
     0x20, 0x60, 0x20, 0x20, 0x70,   // 1
     0xF0, 0x10, 0xF0, 0x80, 0xF0,   // 2
@@ -27,55 +30,36 @@ static const uint8_t chip8_fontset[80] =
     0xF0, 0x80, 0xF0, 0x80, 0x80    // F
 };
 
-static void Cycle(Chip8 *chip);
-static void HandleIRQ(Chip8 *chip);
-static void UpdateTimers(Chip8 *chip);
-static void SetKey(Chip8 *chip, bool isdown);
-
-void chip8_init(Chip8 *chip)
+static
+void
+ResetMemory(CHIP8 *chip)
 {
-    chip->pc = 0x200;
-    chip->I = 0;
-    chip->sp = -1;
-    chip->delay_timer = 0;
-    chip->sound_timer = 0;
-    chip->draw_flag = false;
-    chip->halt = false;
+    memset(chip->Memory, 0, sizeof(chip->Memory));
 
-    memset(chip->graphics, 0, sizeof(chip->graphics));
-    memset(chip->stack, 0, sizeof(chip->stack));
-    memset(chip->V, 0, sizeof(chip->V));
-    memset(chip->memory, 0, sizeof(chip->memory));
-    memset(chip->keypad, false, sizeof(chip->keypad));
-
-    /* Load the font set. */
     for (int i = 0; i < 80; i++)
-        chip->memory[i] = chip8_fontset[i];
-
-    srand(time(NULL));
+        chip->Memory[i] = fontset[i];
 }
 
-void chip8_dump(Chip8 *chip)
+void
+Reset(CHIP8 *chip)
 {
-    printf("pc = 0x%" PRIX16 "\n", chip->pc);
-    printf("I = %" PRIu16 "\n", chip->I);
-    printf("delay_timer = %" PRIu8 "\n", chip->delay_timer);
-    printf("sound_timer = %"PRIu8 "\n", chip->sound_timer);
-    printf("draw_flag = %s\n", chip->draw_flag ? "true" : "false");
+    chip->I = 0;
+    chip->DelayTimer = 0;
+    chip->SoundTimer = 0;
+    chip->PC = 0x200;
+    chip->SP = -1;
 
-    printf("\n");
-    printf("sp = %" PRId16 "\n", chip->sp);
-    for (int i = 0; i < 16; i++)
-        printf("stack[%1X] = %" PRIu16 "\n", i, chip->stack[i]);
+    memset(chip->V, 0, sizeof(chip->V));
+    memset(chip->Stack, 0, sizeof(chip->Stack));
+    memset(chip->Display, 0, sizeof(chip->Display));
+    memset(chip->Keypad, 0, sizeof(chip->Keypad));
 
-    printf("\n");
-    for (int i = 0; i < 16; i++)
-        printf("V[%1X] = %" PRIu8 "\n", i, chip->V[i]);
-
-    printf("\n");
+    chip->Draw = false;
+    chip->Halt = false;
 }
 
-bool chip8_load(Chip8 *chip, const char *rom)
+bool
+LoadROM(CHIP8 *chip, const char *rom)
 {
     FILE *fp;
     long size;
@@ -93,145 +77,37 @@ bool chip8_load(Chip8 *chip, const char *rom)
 
     if (size > (0x1000 - 0x200))
     {
-        puts("ROM too big");
+        printf("ROM too big\n");
         fclose(fp);
         return false;
     }
 
+    ResetMemory(chip);
+
     for (int i = 0; i < size; i++)
     {
-        chip->memory[i + 0x200] = (uint8_t)fgetc(fp);
+        chip->Memory[i + 0x200] = (uint8_t)fgetc(fp);
     }
 
     fclose(fp);
     return true;
 }
 
-void chip8_run(Chip8 *chip)
+void
+UpdateTimers(CHIP8 *chip)
 {
-    if (!sdl_init())
-    {
-        printf("Error starting SDL\n");
-        chip->halt = true;
-    }
+    if (chip->DelayTimer > 0)
+        (chip->DelayTimer)--;
 
-    while(!(chip->halt))
-    {
-        Cycle(chip);
-
-        while (SDL_PollEvent(&chip->event))
-            HandleIRQ(chip);
-
-        UpdateTimers(chip);
-
-        if (chip->draw_flag)
-            sdl_render(chip);
-
-        SDL_Delay(2);
-    }
-
-    sdl_cleanup();
+    if (chip->SoundTimer > 0)
+        (chip->SoundTimer)--;
 }
 
-uint8_t chip8_getkey(Chip8 *chip)
+void
+FDX(CHIP8 *chip)
 {
-    while (true)
-    {
-        SDL_WaitEvent(&chip->event);
-
-        if (chip->event.type != SDL_KEYDOWN)
-            continue;
-
-        SetKey(chip, true);
-        switch (chip->event.key.keysym.sym)
-        {
-        case SDLK_1: return 0x1;
-        case SDLK_2: return 0x2;
-        case SDLK_3: return 0x3;
-        case SDLK_4: return 0xC;
-
-        case SDLK_q: return 0x4;
-        case SDLK_w: return 0x5;
-        case SDLK_e: return 0x6;
-        case SDLK_r: return 0xD;
-
-        case SDLK_a: return 0x7;
-        case SDLK_s: return 0x8;
-        case SDLK_d: return 0x9;
-        case SDLK_f: return 0xE;
-
-        case SDLK_z: return 0xA;
-        case SDLK_x: return 0x0;
-        case SDLK_c: return 0xB;
-        case SDLK_v: return 0xF;
-
-        case SDLK_SPACE:
-            chip->halt = true;
-            return 0xFF;
-        }
-    }
-}
-
-static void HandleIRQ(Chip8 *chip)
-{
-    switch (chip->event.type)
-    {
-    case SDL_QUIT:
-        chip->halt = true;
-        break;
-
-    case SDL_KEYDOWN:
-        if (chip->event.key.keysym.sym == SDLK_ESCAPE)
-            chip->halt = true;
-        else
-            SetKey(chip, true);
-
-        break;
-
-    case SDL_KEYUP:
-        SetKey(chip, false);
-        break;
-    }
-}
-
-static void SetKey(Chip8 *chip, bool isdown)
-{
-    switch (chip->event.key.keysym.sym)
-    {
-    case SDLK_1: chip->keypad[0x1] = isdown; break;
-    case SDLK_2: chip->keypad[0x2] = isdown; break;
-    case SDLK_3: chip->keypad[0x3] = isdown; break;
-    case SDLK_4: chip->keypad[0xC] = isdown; break;
-
-    case SDLK_q: chip->keypad[0x4] = isdown; break;
-    case SDLK_w: chip->keypad[0x5] = isdown; break;
-    case SDLK_e: chip->keypad[0x6] = isdown; break;
-    case SDLK_r: chip->keypad[0xD] = isdown; break;
-
-    case SDLK_a: chip->keypad[0x7] = isdown; break;
-    case SDLK_s: chip->keypad[0x8] = isdown; break;
-    case SDLK_d: chip->keypad[0x9] = isdown; break;
-    case SDLK_f: chip->keypad[0xE] = isdown; break;
-
-    case SDLK_z: chip->keypad[0xA] = isdown; break;
-    case SDLK_x: chip->keypad[0x0] = isdown; break;
-    case SDLK_c: chip->keypad[0xB] = isdown; break;
-    case SDLK_v: chip->keypad[0xF] = isdown; break;
-    }
-}
-
-static void UpdateTimers(Chip8 *chip)
-{
-    if (chip->delay_timer > 0)
-        (chip->delay_timer)--;
-
-    if (chip->sound_timer > 0)
-        (chip->sound_timer)--;
-}
-
-static void Cycle(Chip8 *chip)
-{
-    uint16_t opcode = (chip->memory[chip->pc] << 8) | chip->memory[chip->pc + 1];
+    uint16_t opcode = (chip->Memory[chip->PC] << 8) | chip->Memory[chip->PC + 1];
+    chip->PC += 2;
 
     switch (N3(opcode))
     {
@@ -239,99 +115,171 @@ static void Cycle(Chip8 *chip)
         switch (opcode & 0xFFF)
         {
         case 0x0E0:
-            CLS(chip);
+            /* 00E0: Clears the screen. */
+            memset(chip->Display, 0, sizeof(chip->Display));
+            chip->Draw = true;
             break;
 
         case 0x0EE:
-            RET(chip);
+            /* 00EE: Returns from a subroutine. */
+            chip->PC = chip->Stack[(chip->SP)--];
             break;
 
         default:
-            SYS(chip, opcode);
+            /* 0NNN: Calls RCA 1802 program at address NNN. */
+            /* This instruction is ignored by modern interpreters. */
+            chip->Halt = true;
             break;
         }
 
         break;
 
     case 0x1:
-        JMP(chip, opcode);
+        /* 1NNN: Jump to address NNN. */
+        chip->PC = opcode & 0xFFF;
         break;
 
     case 0x2:
-        CALL(chip, opcode);
+        /* 2NNN: Calls subroutine at NNN. */
+        chip->Stack[++(chip->SP)] = chip->PC;
+        chip->PC = opcode & 0xFFF;
         break;
 
     case 0x3:
-        SE(chip, opcode);
+        /* 3XNN: Skips the next instruction if VX is equal to NN. */
+        if (chip->V[N2(opcode)] == (opcode & 0xFF))
+        {
+            chip->PC += 2;
+        }
+
         break;
 
     case 0x4:
-        SNE(chip, opcode);
+        /* 4XNN: Skips the next instruction if VX is not equal to NN. */
+        if (chip->V[N2(opcode)] != (opcode & 0xFF))
+        {
+            chip->PC += 2;
+        }
+
         break;
 
     case 0x5:
         if (N0(opcode) == 0x0)
         {
-            SE(chip, opcode);
+            /* 5XY0: Skips the next instruction if VX is equal to VY. */
+            if (chip->V[N2(opcode)] == chip->V[N1(opcode)])
+            {
+                chip->PC += 2;
+            }
         }
         else
         {
-            printf("Invalid opcode: 0x%4X\n", opcode);
-            chip->halt = true;
+            printf("Invalid opcode: 0x%04X\n", opcode);
+            chip->Halt = true;
         }
 
         break;
 
     case 0x6:
-        LD(chip, opcode);
+        /* 6XNN: Sets VX to NN. */
+        chip->V[N2(opcode)] = opcode & 0xFF;
         break;
 
     case 0x7:
-        ADD(chip, opcode);
+        /* 7XNN: Adds NN to VX. */
+        chip->V[N2(opcode)] += opcode & 0xFF;
         break;
 
     case 0x8:
         switch (opcode & 0xF)
         {
         case 0x0:
-            LD(chip, opcode);
+            /* 8XY0: Sets VX to the value of VY. */
+            chip->V[N2(opcode)] = chip->V[N1(opcode)];
             break;
 
         case 0x1:
-            OR(chip, opcode);
+            /* 8XY1: Sets VX to (VX | VY). */
+            chip->V[N2(opcode)] |= chip->V[N1(opcode)];
             break;
 
         case 0x2:
-            AND(chip, opcode);
+            /* 8XY2: Sets VX to (VX & VY). */
+            chip->V[N2(opcode)] &= chip->V[N1(opcode)];
             break;
 
         case 0x3:
-            XOR(chip, opcode);
+            /* 8XY3: Sets VX to (VX ^ VY). */
+            chip->V[N2(opcode)] ^= chip->V[N1(opcode)];
             break;
 
         case 0x4:
-            ADD(chip, opcode);
+            /* 8XY4: Adds VY to VX. VF is set to 1 when there is a carry,
+             *       and to 0 when there is not.
+             */
+            if ((chip->V[N2(opcode)] + chip->V[N1(opcode)]) > 0xFF)
+            {
+                chip->V[0xF] = 1;
+            }
+            else
+            {
+                chip->V[0xF] = 0;
+            }
+
+            chip->V[N2(opcode)] += chip->V[N1(opcode)];
             break;
 
         case 0x5:
-            SUB(chip, opcode);
+            /* 8XY5: VY is subtracted from VX. VF is set to 0 when there
+             *       is a borrow, and to 1 when there is not.
+             */
+            if (chip->V[N2(opcode)] < chip->V[N1(opcode)])
+            {
+                chip->V[0xF] = 0;
+            }
+            else
+            {
+                chip->V[0xF] = 1;
+            }
+
+            chip->V[N2(opcode)] -= chip->V[N1(opcode)];
             break;
 
         case 0x6:
-            SHR(chip, opcode);
+            /* 8XY6: Shifts VX right by one. VF is set to the value of
+             *       the least significant bit of VX before the shift.
+             */
+            chip->V[0xF] = chip->V[N2(opcode)] & 0x1;
+            chip->V[N2(opcode)] = chip->V[N2(opcode)] >> 1;
             break;
 
         case 0x7:
-            SUBN(chip, opcode);
+            /* 8XY7: Sets VX to VY minus VX. VF is set to 0 when there
+             *       is a borrow, and to 1 when there is not.
+             */
+            if (chip->V[N2(opcode)] > chip->V[N1(opcode)])
+            {
+                chip->V[0xF] = 0;
+            }
+            else
+            {
+                chip->V[0xF] = 1;
+            }
+
+            chip->V[N2(opcode)] = chip->V[N1(opcode)] - chip->V[N2(opcode)];
             break;
 
         case 0xE:
-            SHL(chip, opcode);
+            /* 8XYE: Shifts VX left by one. VF is set to the value of
+             *       the most significant bit of VX before the shift.
+             */
+            chip->V[0xF] = (chip->V[N2(opcode)] >> 7) & 0x1;
+            chip->V[N2(opcode)] = chip->V[N2(opcode)] << 1;
             break;
 
         default:
-            printf("Invalid opcode: 0x%4X\n", opcode);
-            chip->halt = true;
+            printf("Invalid opcode: 0x%04X\n", opcode);
+            chip->Halt = true;
             break;
         }
 
@@ -340,46 +288,94 @@ static void Cycle(Chip8 *chip)
     case 0x9:
         if (N0(opcode) == 0)
         {
-            SNE(chip, opcode);
+            /* 9XY0: Skips the next instruction of VX is not equal to VY. */
+            if (chip->V[N2(opcode)] != chip->V[N1(opcode)])
+                chip->PC += 2;
         }
         else
         {
-            printf("Invalid opcode: 0x%4X\n", opcode);
-            chip->halt = true;
+            printf("Invalid opcode: 0x%04X\n", opcode);
+            chip->Halt = true;
         }
 
         break;
 
     case 0xA:
-        LD(chip, opcode);
+        /* ANNN: Sets I to the address NNN. */
+        chip->I = opcode & 0xFFF;
         break;
 
     case 0xB:
-        JMP(chip, opcode);
+        /* BNNN: Jumps to the address NNN plus V0. */
+        chip->PC = (opcode & 0xFFF) + chip->V[0];
         break;
 
     case 0xC:
-        RND(chip, opcode);
+        /* CXNN: Sets VX to a random number AND NN. */
+        chip->V[N2(opcode)] = (opcode & 0xFF) & (rand() & 0xFF);
         break;
 
     case 0xD:
-        DRW(chip, opcode);
+        /* DXYN: Draw a sprite at (VX, VY) with N bytes of sprite data
+         *       starting at the address stored in I. Set VF to 1 if a
+         *       pixel is unset and to 0 otherwise.
+         */
+
+        {
+            uint8_t height = N0(opcode);
+
+            /* Reset VF before checking for collision. */
+            chip->V[0xF] = 0;
+
+            for (int row = 0; row < height; row++)
+            {
+                uint8_t sprite_row = chip->Memory[chip->I + row];
+
+                /* Scan through the byte to check if each bit is set. */
+                for (int col = 0; col < 8; col++)
+                {
+                    /* We only care if the pixel of the sprite is set. */
+                    if ((sprite_row & (0x80 >> col)) != 0)
+                    {
+                        /* Allow wrapping on the display. */
+                        uint8_t x = (chip->V[N2(opcode)] + col) % 64;
+                        uint8_t y = (chip->V[N1(opcode)] + row) % 32;
+
+                        int pos = (y * 64) + x;
+
+                        /* Check for collision. */
+                        if (chip->Display[pos] == 1)
+                            chip->V[0xF] = 1;
+
+                        chip->Display[pos] ^= 1;
+                    }
+                }
+            }
+        }
+
+        chip->Draw = true;
         break;
 
     case 0xE:
         switch (opcode & 0xFF)
         {
         case 0x9E:
-            SKP(chip, opcode);
+            /* EX9E: Skips the next instruction of the key stored in VX is pressed. */
+            if (chip->Keypad[chip->V[N2(opcode)]])
+                chip->PC += 2;
+
             break;
 
         case 0xA1:
-            SKNP(chip, opcode);
+            /* EXA1: Skips the next instruction of the key stored in VX is not pressed. */
+            if (!chip->Keypad[chip->V[N2(opcode)]])
+                chip->PC += 2;
+
             break;
 
         default:
-            printf("Invalid opcode: 0x%4X\n", opcode);
-            chip->halt = true;
+            printf("Invalid opcode: 0x%04X\n", opcode);
+            chip->Halt = true;
             break;
         }
 
@@ -389,52 +385,102 @@ static void Cycle(Chip8 *chip)
         switch (opcode & 0xFF)
         {
         case 0x7:
-            LD(chip, opcode);
+            /* FX07: Sets VX to the value of the delay timer. */
+            chip->V[N2(opcode)] = chip->DelayTimer;
             break;
 
         case 0xA:
-            LD(chip, opcode);
+            /* FX0A: A key press is awaited, then stored in VX. */
+            {
+                bool pressed = false;
+
+                for (int i = 0; i < 16; i++)
+                {
+                    if (chip->Keypad[i])
+                    {
+                        pressed = true;
+                        break;
+                    }
+                }
+
+                if (!pressed)
+                {
+                    chip->PC -= 2;
+                }
+            }
+
             break;
 
         case 0x15:
-            LD(chip, opcode);
+            /* FX15: Sets the delay timer to VX. */
+            chip->DelayTimer = chip->V[N2(opcode)];
             break;
 
         case 0x18:
-            LD(chip, opcode);
+            /* FX18: Sets the sound timer to VX. */
+            chip->SoundTimer = chip->V[N2(opcode)];
             break;
 
         case 0x1E:
-            ADD(chip, opcode);
+            /* FX1E: Adds VX to I. */
+            if ((chip->I + chip->V[N2(opcode)]) > 0xFFF)
+            {
+                chip->V[0xF] = 1;
+            }
+            else
+            {
+                chip->V[0xF] = 0;
+            }
+
+            chip->I += chip->V[N2(opcode)];
             break;
 
         case 0x29:
-            LD(chip, opcode);
+            /* FX29: Sets I to the location of the sprite for the character in VX. */
+            chip->I = chip->V[N2(opcode)] * 5;
             break;
 
         case 0x33:
-            LD(chip, opcode);
+            /* FX33: Stores the BCD representation of VX. */
+            {
+                uint8_t value = chip->V[N2(opcode)];
+
+                chip->Memory[chip->I] = value / 100;
+                chip->Memory[chip->I + 1] = (value / 10) % 10;
+                chip->Memory[chip->I + 2] = value % 10;
+            }
+
             break;
 
         case 0x55:
-            LD(chip, opcode);
+            /* FX55: Stores V0 to VX in memory starting at address I. */
+            for (int i = 0; i <= N2(opcode); i++)
+            {
+                chip->Memory[chip->I + i] = chip->V[i];
+            }
+
             break;
 
         case 0x65:
-            LD(chip, opcode);
+            /* FX65: Fills V0 to VX with values from memory starting at address I. */
+            for (int i = 0; i <= N2(opcode); i++)
+            {
+                chip->V[i] = chip->Memory[chip->I + i];
+            }
+
             break;
 
         default:
-            printf("Invalid opcode: 0x%4X\n", opcode);
-            chip->halt = true;
+            printf("Invalid opcode: 0x%04X\n", opcode);
+            chip->Halt = true;
             break;
         }
 
         break;
 
     default:
-        printf("Invalid opcode: 0x%4X\n", opcode);
-        chip->halt = true;
+        printf("Invalid opcode: 0x%04X\n", opcode);
+        chip->Halt = true;
         break;
     }
 }

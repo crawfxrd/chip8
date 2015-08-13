@@ -1,13 +1,12 @@
-cmake_minimum_required(VERSION 3.0)
+cmake_minimum_required(VERSION 3.2)
 
 project(CHIP8)
 
-add_definitions("-Weverything -Wno-padded")
+add_definitions("-std=c11 -g -Weverything -Wno-padded")
 
 list(APPEND SOURCE
     src/main.c
     src/chip8.c
-    src/opcodes.c
     src/sdl.c)
 
 add_executable(chip8 ${SOURCE})
