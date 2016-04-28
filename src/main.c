@@ -33,7 +33,7 @@ int main(int argc, char *argv[])
 
     if (!LoadROM(&chip, argv[1]))
     {
-        printf("Failed to load ROM.\n");
+        fprintf(stderr, "Failed to load ROM.\n");
         return 1;
     }
 

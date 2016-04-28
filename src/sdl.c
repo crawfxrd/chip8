@@ -21,7 +21,7 @@ CreateWindow(void)
 
     if (gWindow == NULL)
     {
-        printf("Failed to create window: %s\n", SDL_GetError());
+        fprintf(stderr, "Failed to create window: %s\n", SDL_GetError());
         return false;
     }
 
@@ -36,7 +36,7 @@ CreateRenderer(void)
 
     if (gRenderer == NULL)
     {
-        printf("Failed to create renderer: %s\n", SDL_GetError());
+        fprintf(stderr, "Failed to create renderer: %s\n", SDL_GetError());
         return false;
     }
 
@@ -55,7 +55,7 @@ CreateTexture(void)
 
     if (gTexture == NULL)
     {
-        printf("Failed to create texture: %s\n", SDL_GetError());
+        fprintf(stderr, "Failed to create texture: %s\n", SDL_GetError());
         return false;
     }
 
@@ -67,7 +67,7 @@ SetupSDL(void)
 {
     if (SDL_Init(SDL_INIT_EVERYTHING) != 0)
     {
-        printf("Failed to initialize SDL: %s\n", SDL_GetError());
+        fprintf(stderr, "Failed to initialize SDL: %s\n", SDL_GetError());
         return false;
     }
 

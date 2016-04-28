@@ -67,7 +67,7 @@ LoadROM(CHIP8 *chip, const char *rom)
     fp = fopen(rom, "rb");
     if (fp == NULL)
     {
-        printf("Unable to open file %s\n", rom);
+        fprintf(stderr, "Unable to open file %s\n", rom);
         return false;
     }
 
@@ -77,7 +77,7 @@ LoadROM(CHIP8 *chip, const char *rom)
 
     if (size > (0x1000 - 0x200))
     {
-        printf("ROM too big\n");
+        fprintf(stderr, "ROM too big\n");
         fclose(fp);
         return false;
     }
@@ -174,7 +174,7 @@ FDX(CHIP8 *chip)
         }
         else
         {
-            printf("Invalid opcode: 0x%04X\n", opcode);
+            fprintf(stderr, "Invalid opcode: 0x%04X\n", opcode);
             chip->Halt = true;
         }
 
@@ -278,7 +278,7 @@ FDX(CHIP8 *chip)
             break;
 
         default:
-            printf("Invalid opcode: 0x%04X\n", opcode);
+            fprintf(stderr, "Invalid opcode: 0x%04X\n", opcode);
             chip->Halt = true;
             break;
         }
@@ -294,7 +294,7 @@ FDX(CHIP8 *chip)
         }
         else
         {
-            printf("Invalid opcode: 0x%04X\n", opcode);
+            fprintf(stderr, "Invalid opcode: 0x%04X\n", opcode);
             chip->Halt = true;
         }
 
@@ -374,7 +374,7 @@ FDX(CHIP8 *chip)
             break;
 
         default:
-            printf("Invalid opcode: 0x%04X\n", opcode);
+            fprintf(stderr, "Invalid opcode: 0x%04X\n", opcode);
             chip->Halt = true;
             break;
         }
@@ -471,7 +471,7 @@ FDX(CHIP8 *chip)
             break;
 
         default:
-            printf("Invalid opcode: 0x%04X\n", opcode);
+            fprintf(stderr, "Invalid opcode: 0x%04X\n", opcode);
             chip->Halt = true;
             break;
         }
@@ -479,7 +479,7 @@ FDX(CHIP8 *chip)
         break;
 
     default:
-        printf("Invalid opcode: 0x%04X\n", opcode);
+        fprintf(stderr, "Invalid opcode: 0x%04X\n", opcode);
         chip->Halt = true;
         break;
     }
