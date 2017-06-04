@@ -1,6 +1,6 @@
-#include <stdio.h>
+#include "sdl2.h"
 
-#include "sdl.h"
+#include <stdio.h>
 
 static const int SCREEN_WIDTH = 640;
 static const int SCREEN_HEIGHT = 320;

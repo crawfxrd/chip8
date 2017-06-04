@@ -1,12 +1,9 @@
-#include <stdbool.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include <time.h>
 
-#include <SDL2/SDL.h>
-
 #include "chip8.h"
-#include "sdl.h"
+#include "sdl2.h"
 
 static void SetKey(CHIP8 *, SDL_Keycode, bool);
 
@@ -110,4 +107,3 @@ SetKey(CHIP8 *chip, SDL_Keycode key, bool pressed)
     case SDLK_v: chip->Keypad[0xF] = pressed; break;
     }
 }
-

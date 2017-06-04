@@ -25,4 +25,3 @@ void Reset(CHIP8 *);
 bool LoadROM(CHIP8 *, const char *rom);
 void UpdateTimers(CHIP8 *);
 void FDX(CHIP8 *);
-

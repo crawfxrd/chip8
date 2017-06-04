@@ -8,4 +8,3 @@
 bool SetupSDL(void);
 void CleanupSDL(void);
 void UpdateDisplay(uint8_t *);
-
