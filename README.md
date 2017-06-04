@@ -5,24 +5,22 @@ A simple CHIP-8 emulator written in C.
 
 ## Building
 
-The CMakeLists.txt file is very simple and expects clang as the compiler.
-
 To build, execute the following in the top level:
 
 ``` shell
-mkdir build && cd build
-cmake ..
-make
+meson build
+cd build
+ninja
 ```
 
-This will create the `chip8` executable.
+This will create the `chip8` executable in the `src/` directory.
 
 ## Using
 
 To use chip8, simply pass it a ROM file.
 
 ``` shell
-./chip8 rom
+./src/chip8 rom
 ```
 
 Zophar's [Chip-8 Games Pack][zophar] is available in the `games` directory.
